@@ -21,6 +21,38 @@ struct MovieListItemTests {
         #expect(result == movie)
     }
 
+    @Test("Date formatter for TMDb release dates uses UTC", .tags(.decoding))
+    func dateFormatterUsesUTC() {
+        let formatter = DateFormatter.theMovieDatabase
+    
+        #expect(formatter.calendar.identifier == .gregorian)
+        #expect(formatter.timeZone?.secondsFromGMT() == 0)
+        #expect(formatter.date(from: "1995-03-31") != nil)
+    }
+
+    @Test("JSON decoding of MovieListItem keeps DST-edge release dates", .tags(.decoding))
+    func decodeHandlesDSTEdgeReleaseDate() throws {
+        let json = """
+        {
+          "id": 9067,
+          "title": "Tank Girl",
+          "original_title": "Tank Girl",
+          "original_language": "en",
+          "overview": "Test overview",
+          "genre_ids": [28],
+          "release_date": "1995-03-31"
+        }
+        """
+    
+        let item = try JSONDecoder.theMovieDatabase.decode(
+            MovieListItem.self,
+            from: Data(json.utf8)
+        )
+    
+        let releaseDate = try #require(item.releaseDate)
+        let expected = try #require(DateFormatter.theMovieDatabase.date(from: "1995-03-31"))
+        #expect(releaseDate == expected)
+    }
 }
 
 extension MovieListItemTests {
